@@ -15,15 +15,7 @@ namespace SerialLogs
         {
             InitializeComponent();
         }
-        // Creating list to host serials that are created and skipped if they exist.
-        List<int> serialList = new List<int>();
-        List<int> serialsSkippedList = new List<int>();
-        #region This is for the array list, Marked for delete
-        //int totalIndex = 0;
-        //int[] serialsSkippedList; 
-        #endregion
-
-
+        
         private void NewSerialNumber_Load(object sender, EventArgs e)
         {
             dateTimePicker1.Value = Convert.ToDateTime(DateTime.Today.ToShortDateString());
@@ -42,16 +34,17 @@ namespace SerialLogs
             comboAntenna.SelectedValue = 0;
             comboCustomer.SelectedValue = 0;
 
-            // tool tips
+            #region tool tips
             ToolTip toolTips = new ToolTip();
             // Set button for tool tips
             toolTips.SetToolTip(btnChangeYear, "ONLY CLICK THIS \nIF YOU ARE SURE YOU \nWANT TO START A NEW YEAR");
             toolTips.SetToolTip(btnAddAntenna, "Click here to add \nnew antenna to drop down list");
             toolTips.SetToolTip(btnAddNewCust, "Click here to add \nnew customer to drop down list");
             toolTips.SetToolTip(btnHelp, "HELP!");
+            #endregion
 
         }
-        
+
         private void btnSave_Click(object sender, EventArgs e)
         {
             // loads a fresh copy of the dataset
@@ -61,111 +54,7 @@ namespace SerialLogs
             {
                 if (IsValidData())
                 {
-                    
-                    int serialStart = int.Parse(maskedSerial.Text.Remove(2, 1));
-                    int serialEnd = int.Parse(txtCount.Text);
-                    
-                    // Sets progressbar to visible..
-                    progressBar1.Visible = true; 
-                    progressBar1.Maximum = serialEnd;
-                    
-                    for (int i = 0; i < serialEnd; i++)
-                    {
-                        progressBar1.Value++;
-                        progressBar1.Update();
-
-                        int answer = serialStart++;
-                        
-                        bool serialExist = appData.Serial_Log.Any(SerialLogs => SerialLogs.Serial.Contains(answer.ToString("00-0000")));  // Checks to see if serial exist
-
-                        if (serialExist)
-                        {
-                            #region Array list of serials exist, Marked for delete
-                            // Add total to array (and update index)
-                            //serialsSkippedList[totalIndex] = answer;
-                            //totalIndex++;
-                            #endregion
-
-                            // Create list of serials that exist
-                            serialsSkippedList.Add(answer);
-                            
-                            // Sets count back by 1 each time a serial number exist
-                            i--; 
-
-                            progressBar1.Value--;
-                            progressBar1.Update();
-                            continue;
-                        }
-                        else
-                        {
-                            // Create a new Entry object
-                            AppData.Serial_LogRow newEntry = appData.Serial_Log.NewSerial_LogRow();
-
-                            // Set field values for this new entry
-                            newEntry.Serial = answer.ToString("00-0000"); // Adds dash back in to serial number to be entered in to database
-                            newEntry.Customer = comboCustomer.Text.ToUpper();
-                            newEntry.Antenna = comboAntenna.Text.ToUpper();
-                            newEntry.JobNumber = maskedJobNumber.Text.ToUpper();
-                            newEntry.Notes = txtNotes.Text;
-                            newEntry.Date = dateTimePicker1.Value;
-
-                            // Add the row to the database
-                            appData.Serial_Log.AddSerial_LogRow(newEntry);
-
-                            // Update the serialsTableAdapter object
-                            //serial_LogTableAdapter.Update(newEntry);
-                            serial_LogTableAdapter.Update(appData.Serial_Log);
-                            // Close the form
-
-                            // Create list of serial that are issued
-                            serialList.Add(answer);
-                            this.Close();
-                        }
-                    }
-                    #region Array list of serial exist method, Marked for delete
-
-                    //if (totalIndex > 0)
-                    //{
-
-                    //    Array.Sort(serialsSkippedList);
-                    //    string messageExist = "Sorry these serial numbers existed in the database already, so they were skipped \n\n";
-                    //    foreach (int serialExist in serialsSkippedList)
-                    //    {
-
-                    //        messageExist += serialExist.ToString("00-0000") + ", ";
-                    //    }
-                    //    MessageBox.Show(messageExist, "Serial numbers already exist", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                    //}
-                    #endregion *Marked for Delete
-
-
-                    // Message box list of serials skipped because they already exist
-                    if (serialsSkippedList.Count != 0)
-                    {
-                        serialsSkippedList.Sort();
-                        string messageExist = "Sorry these serial numbers existed in the database already, so they were skipped \n\n";
-                        foreach (int serialExist in serialsSkippedList)
-                        {
-                            messageExist += serialExist.ToString("00-0000") + ", ";
-                        }
-                        // Display message box for skipped serials
-                        MessageBox.Show(messageExist, "Serial numbers already exist", MessageBoxButtons.OK, MessageBoxIcon.Error); 
-                    }
-
-                    // Message box list of serial numbers that are issued
-                    serialList.Sort();
-                    string message = "New serial numbers have been successfully entered in the data base, here is a list of issued serial numbers\n\n" +
-                        "Customer: " + comboCustomer.Text.ToUpper() +
-                        "\nAntenna: " + comboAntenna.Text.ToUpper() +
-                        "\nJob Number: " + maskedJobNumber.Text.ToUpper() + "\n" + "Serial/Serials Issued: ";
-                    foreach (int serialsIssued in serialList)
-                    {
-                        message += serialsIssued.ToString("00-0000") + ", ";
-                    }
-                    // Display message box for the list
-                    MessageBox.Show(message, "New Serial Numbers issued", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    
+                    CreateNewSerials();
                 }
             }
             catch (DBConcurrencyException)
@@ -187,6 +76,8 @@ namespace SerialLogs
         
         }
 
+        
+
         // Check if data is valid
         // Validate Customer, antenna, Job and # of Serials to issue boxes
         private bool IsValidData()
@@ -201,7 +92,99 @@ namespace SerialLogs
                 Validators.IsPresentMask(maskedJobNumber);
 
         }
-       
+        private void CreateNewSerials()
+        {
+            // Creating list to host serials that are created and skipped if they exist.
+            List<int> serialList = new List<int>();
+            List<int> serialsSkippedList = new List<int>();
+
+
+            int serialStart = int.Parse(maskedSerial.Text.Remove(2, 1));
+            int serialEnd = int.Parse(txtCount.Text);
+
+            // Sets progressbar to visible..
+            progressBar1.Visible = true;
+            progressBar1.Maximum = serialEnd;
+
+            for (int i = 0; i < serialEnd; i++)
+            {
+                progressBar1.Value++;
+                progressBar1.Update();
+
+                int answer = serialStart++;
+
+                bool serialExist = appData.Serial_Log.Any(SerialLogs => SerialLogs.Serial.Contains(answer.ToString("00-0000")));  // Checks to see if serial exist
+
+                if (serialExist)
+                {
+                    // Create list of serials that exist
+                    serialsSkippedList.Add(answer);
+
+                    // Sets count back by 1 each time a serial number exist
+                    i--;
+
+                    progressBar1.Value--;
+                    progressBar1.Update();
+                    continue;
+                }
+                else
+                {
+                    // Create a new Entry object
+                    AppData.Serial_LogRow newEntry = appData.Serial_Log.NewSerial_LogRow();
+
+                    // Set field values for this new entry
+                    newEntry.Serial = answer.ToString("00-0000"); // Adds dash back in to serial number to be entered in to database
+                    newEntry.Customer = comboCustomer.Text.ToUpper();
+                    newEntry.Antenna = comboAntenna.Text.ToUpper();
+                    newEntry.JobNumber = maskedJobNumber.Text.ToUpper();
+                    newEntry.Notes = txtNotes.Text;
+                    newEntry.Date = dateTimePicker1.Value;
+
+                    // Add the row to the database
+                    appData.Serial_Log.AddSerial_LogRow(newEntry);
+
+                    // Update the serialsTableAdapter object
+                    //serial_LogTableAdapter.Update(newEntry);
+                    serial_LogTableAdapter.Update(appData.Serial_Log);
+                    // Close the form
+
+                    // Create list of serial that are issued
+                    serialList.Add(answer);
+                    this.Close();
+                }
+            }
+            // Create Message boxes for issued serial list and skipped serials if any
+            CreateSerialLists(serialList, serialsSkippedList);
+        }
+
+        private void CreateSerialLists(List<int>serialList, List<int>serialsSkippedList)
+        {
+            if (serialsSkippedList.Count != 0)
+            {
+                serialsSkippedList.Sort();
+                string messageExist = "Sorry these serial numbers existed in the database already, so they were skipped \n\n";
+                foreach (int serialExist in serialsSkippedList)
+                {
+                    messageExist += serialExist.ToString("00-0000") + ", ";
+                }
+                // Display message box for skipped serials
+                MessageBox.Show(messageExist, "Serial numbers already exist", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            // Message box list of serial numbers that are issued
+            serialList.Sort();
+            string message = "New serial numbers have been successfully entered in the data base, here is a list of issued serial numbers\n\n" +
+                "Customer: " + comboCustomer.Text.ToUpper() +
+                "\nAntenna: " + comboAntenna.Text.ToUpper() +
+                "\nJob Number: " + maskedJobNumber.Text.ToUpper() + "\n" + "Serial/Serials Issued: ";
+            foreach (int serialsIssued in serialList)
+            {
+                message += serialsIssued.ToString("00-0000") + ", ";
+            }
+            // Display message box for the list
+            MessageBox.Show(message, "New Serial Numbers issued", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         private void btnAddCustomer_Click(object sender, EventArgs e)
         {
             NewCustomer newCustomer = new NewCustomer();
